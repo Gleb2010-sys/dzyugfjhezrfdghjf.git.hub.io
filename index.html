@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моя Касса</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            color: #333;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        /* Экран входа */
+        .login-screen {
+            background: white;
+            max-width: 320px;
+            margin: 80px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .login-screen h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .login-screen p {
+            margin: 15px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Основной экран */
+        .main-screen {
+            display: none;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Навигация */
+        .nav {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            display: flex;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 12px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn.active {
+            background: #f0f7ff;
+            color: #4CAF50;
+            font-weight: 600;
+        }
+
+        .nav-btn i {
+            font-size: 18px;
+        }
+
+        /* Разделы */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Кнопка добавления */
+        .add-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            z-index: 99;
+            transition: transform 0.2s;
+        }
+
+        .add-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 480px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+            padding: 24px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cancel-btn {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .cancel-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #45a049;
+        }
+
+        /* Карточки товаров */
+        .supply-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #e0e0e0;
+        }
+
+        .supply-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .supply-date {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .delete-supply-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .delete-supply-btn:hover {
+            background: #ff5252;
+        }
+
+        .product-card {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-card:last-child {
+            border-bottom: none;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .product-details {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .product-price {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sell-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .sell-btn:hover {
+            background: #45a049;
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #ff5252;
+        }
+
+        /* Статистика */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-card h4 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .profit-list {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #e0e0e0;
+        }
+
+        .profit-item {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .profit-item:last-child {
+            border-bottom: none;
+        }
+
+        .profit-date {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .profit-amount {
+            font-weight: 700;
+            color: #4CAF50;
+            font-size: 18px;
+        }
+
+        /* Проданные товары */
+        .sold-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #e0e0e0;
+        }
+
+        .sold-date {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        /* Состояния */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        /* Online статус */
+        .online-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #666;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 101;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .online-dot.offline {
+            background: #ff6b6b;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+                padding-bottom: 80px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-actions {
+                flex-direction: column;
+                width: 100px;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .user-info {
+                position: static;
+                margin-top: 10px;
+                justify-content: center;
+            }
+        }
+
+        /* Стили для уведомлений */
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                top: 50px;
+                opacity: 0;
+            }
+            to {
+                top: 70px;
+                opacity: 1;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Уведомление -->
+    <div class="notification" id="notification">
+        <i class="fas fa-sync-alt"></i>
+        <span id="notificationText">Данные обновлены</span>
+    </div>
+
+    <!-- Экран входа -->
+    <div id="loginScreen" class="login-screen">
+        <h2><i class="fas fa-cash-register"></i> Моя Касса</h2>
+        <p>Это приложение работает только в Telegram</p>
+        <p>Для использования:</p>
+        <ol style="text-align: left; margin: 20px 0; color: #666; font-size: 14px;">
+            <li>Создайте бота через @BotFather</li>
+            <li>Добавьте в него команду /start</li>
+            <li>Отправьте боту команду /start</li>
+            <li>Бот отправит вам ссылку на это приложение</li>
+        </ol>
+        <p style="color: #4CAF50; font-weight: 600;">
+            <i class="fab fa-telegram"></i> Откройте в Telegram через бота
+        </p>
+    </div>
+
+    <!-- Основной экран -->
+    <div id="mainScreen" class="main-screen">
+        <!-- Статус синхронизации -->
+        <div class="online-status" id="onlineStatus">
+            <div class="online-dot" id="onlineDot"></div>
+            <span id="onlineText">Синхронизация...</span>
+        </div>
+
+        <!-- Шапка -->
+        <div class="header">
+            <h1><i class="fas fa-store"></i> Моя Касса</h1>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <span id="userName">Пользователь</span>
+            </div>
+        </div>
+
+        <!-- Контент -->
+        <div class="content">
+            <!-- Поставки -->
+            <div id="supplySection" class="section active">
+                <div id="supplyList">
+                    <div class="empty-state" id="emptySupply">
+                        <i class="fas fa-box-open"></i>
+                        <p>Нет активных поставок</p>
+                        <p style="font-size: 14px; margin-top: 8px;">Нажмите "+" чтобы добавить первую</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Счёт -->
+            <div id="accountSection" class="section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Общая прибыль</h4>
+                        <div class="value" id="totalProfitAmount">0 ₽</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Продано сегодня</h4>
+                        <div class="value" id="soldToday">0 ₽</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 16px; color: #2c3e50;">Прибыль по дням</h3>
+                <div class="date-filter">
+                    <input type="date" id="dateFilter" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px;">
+                </div>
+
+                <div class="profit-list" id="profitList">
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Нет данных о прибыли</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Продано -->
+            <div id="soldSection" class="section">
+                <div id="soldList">
+                    <div class="empty-state" id="emptySold">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Нет проданных товаров</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопка добавления -->
+        <button id="addSupplyBtn" class="add-btn">+</button>
+
+        <!-- Навигация -->
+        <div class="nav">
+            <button class="nav-btn active" onclick="showSection('supply')">
+                <i class="fas fa-truck"></i>
+                <span>Поставки</span>
+            </button>
+            <button class="nav-btn" onclick="showSection('account')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Счёт</span>
+            </button>
+            <button class="nav-btn" onclick="showSection('sold')">
+                <i class="fas fa-check-circle"></i>
+                <span>Продано</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления поставки -->
+    <div id="supplyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Новая поставка</h3>
+            </div>
+            <div class="modal-body">
+                <div id="productsContainer">
+                    <div class="product-form">
+                        <div class="form-group">
+                            <label>Название товара</label>
+                            <input type="text" class="product-name" placeholder="Например: Кока-Кола 0.5л">
+                        </div>
+                        <div class="form-group">
+                            <label>Цена за штуку (₽)</label>
+                            <input type="number" class="product-price" placeholder="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Количество (шт)</label>
+                            <input type="number" class="product-quantity" placeholder="10" min="1" value="1">
+                        </div>
+                    </div>
+                </div>
+                <button onclick="addProductForm()" style="width: 100%; padding: 12px; background: #f0f7ff; color: #2196F3; border: 2px dashed #2196F3; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px;">
+                    <i class="fas fa-plus"></i> Добавить ещё товар
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="cancelSupply()">
+                    <i class="fas fa-times"></i> Отмена
+                </button>
+                <button class="modal-btn save-btn" onclick="saveSupply()">
+                    <i class="fas fa-check"></i> Сохранить поставку
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Telegram Web App Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <script>
+        // =============================
+        // КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ
+        // =============================
+        const DB_CONFIG = {
+            // Замените на свой Appwrite проект
+            endpoint: 'https://cloud.appwrite.io/v1',
+            projectId: 'your-project-id',
+            databaseId: 'your-database-id',
+            collections: {
+                supplies: 'supplies',
+                sold: 'sold_products',
+                profit: 'daily_profit'
+            },
+            apiKey: 'your-api-key'
+        };
+
+        // =============================
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // =============================
+        let TelegramWebApp = null;
+        let telegramUser = null;
+        let currentSection = 'supply';
+        let isOnline = false;
+        let lastSync = Date.now();
+        let syncInterval;
+        let currentUserId = null;
+
+        // =============================
+        // ДОМ ЭЛЕМЕНТЫ
+        // =============================
+        const loginScreen = document.getElementById('loginScreen');
+        const mainScreen = document.getElementById('mainScreen');
+        const addSupplyBtn = document.getElementById('addSupplyBtn');
+        const supplyModal = document.getElementById('supplyModal');
+        const productsContainer = document.getElementById('productsContainer');
+        const onlineStatus = document.getElementById('onlineStatus');
+        const onlineDot = document.getElementById('onlineDot');
+        const onlineText = document.getElementById('onlineText');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+
+        // =============================
+        // ИНИЦИАЛИЗАЦИЯ TELEGRAM
+        // =============================
+        function initTelegram() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                TelegramWebApp = window.Telegram.WebApp;
+
+                try {
+                    TelegramWebApp.ready();
+                    TelegramWebApp.expand();
+
+                    telegramUser = TelegramWebApp.initDataUnsafe?.user;
+
+                    if (telegramUser) {
+                        // Устанавливаем уникальный ID пользователя
+                        currentUserId = telegramUser.id.toString();
+
+                        // Настраиваем интерфейс пользователя
+                        setupUserInterface();
+
+                        // Инициализируем приложение
+                        initializeApp();
+
+                        return true;
+                    } else {
+                        showError('Пользователь не найден');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Ошибка инициализации Telegram:', error);
+                    showError('Ошибка подключения к Telegram');
+                    return false;
+                }
+            } else {
+                showError('Откройте приложение через Telegram бота');
+                return false;
+            }
+        }
+
+        function setupUserInterface() {
+            userName.textContent = telegramUser.first_name || 'Пользователь';
+            userAvatar.textContent = telegramUser.first_name?.[0]?.toUpperCase() || 'U';
+
+            // Настраиваем цветовую тему Telegram
+            if (TelegramWebApp.colorScheme === 'dark') {
+                document.body.style.backgroundColor = '#1a1a1a';
+                document.body.style.color = '#ffffff';
+            }
+        }
+
+        function initializeApp() {
+            // Скрываем экран входа
+            loginScreen.style.display = 'none';
+            mainScreen.style.display = 'block';
+
+            // Загружаем данные
+            loadUserData();
+
+            // Начинаем синхронизацию
+            startSync();
+
+            // Показываем уведомление
+            showNotification('Приложение загружено');
+        }
+
+        // =============================
+        // СИНХРОНИЗАЦИЯ ДАННЫХ
+        // =============================
+        async function loadUserData() {
+            try {
+                // Пробуем загрузить из облака
+                await syncFromCloud();
+            } catch (error) {
+                console.log('Ошибка облачной загрузки:', error);
+                // Пробуем загрузить из localStorage
+                await loadFromLocalStorage();
+            }
+
+            // Обновляем интерфейс
+            refreshAllSections();
+        }
+
+        async function syncToCloud() {
+            if (!currentUserId) return;
+
+            try {
+                const userData = {
+                    userId: currentUserId,
+                    supplies: JSON.parse(localStorage.getItem('supplies') || '[]'),
+                    soldProducts: JSON.parse(localStorage.getItem('soldProducts') || '[]'),
+                    dailyProfit: JSON.parse(localStorage.getItem('dailyProfit') || '[]'),
+                    timestamp: Date.now(),
+                    userInfo: {
+                        id: telegramUser.id,
+                        firstName: telegramUser.first_name,
+                        lastName: telegramUser.last_name,
+                        username: telegramUser.username
+                    }
+                };
+
+                // Здесь будет вызов к вашему серверу/базе данных
+                // Пример для Appwrite:
+                /*
+                const response = await fetch(`${DB_CONFIG.endpoint}/databases/${DB_CONFIG.databaseId}/collections/supplies/documents`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Appwrite-Project': DB_CONFIG.projectId,
+                        'X-Appwrite-Key': DB_CONFIG.apiKey
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        data: userData
+                    })
+                });
+                */
+
+                // Для демо сохраняем в localStorage с ключом по userId
+                localStorage.setItem(`cashapp_${currentUserId}`, JSON.stringify(userData));
+
+                // Также сохраняем время последней синхронизации
+                localStorage.setItem(`last_sync_${currentUserId}`, Date.now().toString());
+
+                return true;
+            } catch (error) {
+                console.error('Ошибка синхронизации:', error);
+                return false;
+            }
+        }
+
+        async function syncFromCloud() {
+            if (!currentUserId) return;
+
+            try {
+                // Здесь будет загрузка с вашего сервера/базы данных
+                // Пример для Appwrite:
+                /*
+                const response = await fetch(`${DB_CONFIG.endpoint}/databases/${DB_CONFIG.databaseId}/collections/supplies/documents?queries[]=equal("userId","${currentUserId}")`, {
+                    headers: {
+                        'X-Appwrite-Project': DB_CONFIG.projectId,
+                        'X-Appwrite-Key': DB_CONFIG.apiKey
+                    }
+                });
+
+                const data = await response.json();
+                const latestData = data.documents[0]?.data;
+                */
+
+                // Для демо загружаем из localStorage
+                const savedData = localStorage.getItem(`cashapp_${currentUserId}`);
+
+                if (savedData) {
+                    const userData = JSON.parse(savedData);
+
+                    // Загружаем данные в localStorage
+                    localStorage.setItem('supplies', JSON.stringify(userData.supplies || []));
+                    localStorage.setItem('soldProducts', JSON.stringify(userData.soldProducts || []));
+                    localStorage.setItem('dailyProfit', JSON.stringify(userData.dailyProfit || []));
+
+                    return true;
+                }
+
+                return false;
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                throw error;
+            }
+        }
+
+        function loadFromLocalStorage() {
+            // Инициализируем пустые данные, если их нет
+            if (!localStorage.getItem('supplies')) {
+                localStorage.setItem('supplies', JSON.stringify([]));
+            }
+            if (!localStorage.getItem('soldProducts')) {
+                localStorage.setItem('soldProducts', JSON.stringify([]));
+            }
+            if (!localStorage.getItem('dailyProfit')) {
+                localStorage.setItem('dailyProfit', JSON.stringify([]));
+            }
+
+            return true;
+        }
+
+        function startSync() {
+            isOnline = true;
+            updateOnlineStatus();
+
+            // Синхронизация каждые 10 секунд
+            syncInterval = setInterval(async () => {
+                if (isOnline) {
+                    await performSync();
+                }
+            }, 10000);
+
+            // Проверка статуса каждые 30 секунд
+            setInterval(() => {
+                const timeDiff = Date.now() - lastSync;
+                if (timeDiff > 120000) { // 2 минуты без синхронизации
+                    isOnline = false;
+                    updateOnlineStatus();
+                }
+            }, 30000);
+        }
+
+        async function performSync() {
+            try {
+                // Сохраняем локальные изменения в облако
+                const syncResult = await syncToCloud();
+
+                if (syncResult) {
+                    lastSync = Date.now();
+                    updateOnlineStatus('Синхронизировано ' + new Date().toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }));
+                }
+            } catch (error) {
+                console.error('Ошибка синхронизации:', error);
+                isOnline = false;
+                updateOnlineStatus('Ошибка синхронизации');
+            }
+        }
+
+        function updateOnlineStatus(status = null) {
+            if (status) {
+                onlineText.textContent = status;
+            }
+
+            if (isOnline) {
+                onlineDot.classList.remove('offline');
+            } else {
+                onlineDot.classList.add('offline');
+                onlineText.textContent = 'Оффлайн';
+            }
+        }
+
+        // =============================
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // =============================
+        function showNotification(text) {
+            notificationText.textContent = text;
+            notification.style.display = 'flex';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function showError(message) {
+            loginScreen.innerHTML = `
+                <h2><i class="fas fa-exclamation-triangle"></i> Ошибка</h2>
+                <p style="color: #ff6b6b;">${message}</p>
+                <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                    Откройте это приложение через Telegram бота
+                </p>
+            `;
+        }
+
+        // =============================
+        // ОСНОВНАЯ ЛОГИКА ПРИЛОЖЕНИЯ
+        // =============================
+        // Навигация
+        function showSection(section) {
+            currentSection = section;
+
+            // Обновляем активные кнопки
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // Показываем выбранный раздел
+            document.querySelectorAll('.section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(section + 'Section').classList.add('active');
+
+            // Показываем/скрываем кнопку добавления
+            addSupplyBtn.style.display = section === 'supply' ? 'block' : 'none';
+
+            // Загружаем данные для раздела
+            if (section === 'supply') loadSupplies();
+            if (section === 'account') updateAccountSection();
+            if (section === 'sold') loadSoldProducts();
+        }
+
+        // Добавление ещё товара в форму
+        function addProductForm() {
+            const div = document.createElement('div');
+            div.className = 'product-form';
+            div.innerHTML = `
+                <div class="form-group">
+                    <label>Название товара</label>
+                    <input type="text" class="product-name" placeholder="Например: Сникерс">
+                </div>
+                <div class="form-group">
+                    <label>Цена за штуку (₽)</label>
+                    <input type="number" class="product-price" placeholder="50" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Количество (шт)</label>
+                    <input type="number" class="product-quantity" placeholder="20" min="1" value="1">
+                </div>
+            `;
+            productsContainer.appendChild(div);
+        }
+
+        // Открытие/закрытие модального окна
+        addSupplyBtn.addEventListener('click', () => {
+            supplyModal.style.display = 'flex';
+            productsContainer.innerHTML = `
+                <div class="product-form">
+                    <div class="form-group">
+                        <label>Название товара</label>
+                        <input type="text" class="product-name" placeholder="Например: Кока-Кола 0.5л">
+                    </div>
+                    <div class="form-group">
+                        <label>Цена за штуку (₽)</label>
+                        <input type="number" class="product-price" placeholder="100" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Количество (шт)</label>
+                        <input type="number" class="product-quantity" placeholder="10" min="1" value="1">
+                    </div>
+                </div>
+            `;
+        });
+
+        function cancelSupply() {
+            supplyModal.style.display = 'none';
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target === supplyModal) {
+                cancelSupply();
+            }
+        });
+
+        // Сохранение поставки
+        async function saveSupply() {
+            const forms = productsContainer.querySelectorAll('.product-form');
+            const products = [];
+
+            forms.forEach(form => {
+                const name = form.querySelector('.product-name').value;
+                const price = form.querySelector('.product-price').value;
+                const quantity = form.querySelector('.product-quantity').value;
+
+                if (name && price && quantity) {
+                    products.push({
+                        id: Date.now() + Math.random(),
+                        name: name,
+                        price: parseInt(price),
+                        quantity: parseInt(quantity),
+                        remaining: parseInt(quantity),
+                        supplyId: Date.now()
+                    });
+                }
+            });
+
+            if (products.length > 0) {
+                const supplies = JSON.parse(localStorage.getItem('supplies'));
+                supplies.push({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    products: products
+                });
+                localStorage.setItem('supplies', JSON.stringify(supplies));
+
+                // Синхронизируем с облаком
+                await syncToCloud();
+
+                supplyModal.style.display = 'none';
+                loadSupplies();
+
+                showNotification('Поставка добавлена');
+            }
+        }
+
+        // Загрузка поставок
+        function loadSupplies() {
+            const supplies = JSON.parse(localStorage.getItem('supplies') || '[]');
+            const supplyList = document.getElementById('supplyList');
+            const emptySupply = document.getElementById('emptySupply');
+
+            supplyList.innerHTML = '';
+
+            if (supplies.length === 0) {
+                if (emptySupply) emptySupply.style.display = 'block';
+                return;
+            }
+
+            if (emptySupply) emptySupply.style.display = 'none';
+
+            // Сортируем поставки по дате (новые сверху)
+            supplies.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(supply => {
+                const supplyCard = document.createElement('div');
+                supplyCard.className = 'supply-card';
+
+                const date = new Date(supply.date).toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                let productsHTML = '';
+                supply.products.forEach(product => {
+                    if (product.remaining > 0) {
+                        productsHTML += `
+                            <div class="product-card">
+                                <div class="product-info">
+                                    <div class="product-name">${product.name}</div>
+                                    <div class="product-details">
+                                        <span class="product-price">${product.price} ₽/шт</span>
+                                        <span>Осталось: ${product.remaining} из ${product.quantity}</span>
+                                    </div>
+                                </div>
+                                <div class="product-actions">
+                                    <button class="action-btn sell-btn" onclick="sellProduct('${product.id}', ${supply.id})">
+                                        <i class="fas fa-shopping-cart"></i> Продать 1
+                                    </button>
+                                    <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}', ${supply.id})">
+                                        <i class="fas fa-trash"></i> Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                if (productsHTML === '') {
+                    productsHTML = `
+                        <div class="product-card">
+                            <div class="product-info">
+                                <div class="product-name" style="color: #999;">Все товары проданы</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                supplyCard.innerHTML = `
+                    <div class="supply-header">
+                        <div class="supply-date">
+                            <i class="fas fa-calendar"></i> ${date}
+                        </div>
+                        <button class="delete-supply-btn" onclick="deleteSupply(${supply.id})">
+                            <i class="fas fa-trash"></i> Удалить поставку
+                        </button>
+                    </div>
+                    ${productsHTML}
+                `;
+
+                supplyList.appendChild(supplyCard);
+            });
+        }
+
+        // Обновить все разделы
+        function refreshAllSections() {
+            loadSupplies();
+            loadSoldProducts();
+            updateAccountSection();
+        }
+
+        // Продажа товара
+        async function sellProduct(productId, supplyId) {
+            const supplies = JSON.parse(localStorage.getItem('supplies'));
+            const soldProducts = JSON.parse(localStorage.getItem('soldProducts'));
+            const dailyProfit = JSON.parse(localStorage.getItem('dailyProfit'));
+
+            // Находим товар
+            for (let supply of supplies) {
+                if (supply.id === supplyId) {
+                    for (let product of supply.products) {
+                        if (product.id == productId && product.remaining > 0) {
+                            // Уменьшаем количество
+                            product.remaining--;
+
+                            // Добавляем в проданные
+                            const soldProduct = {
+                                ...product,
+                                soldDate: new Date().toISOString(),
+                                soldQuantity: 1,
+                                totalPrice: product.price
+                            };
+                            soldProducts.push(soldProduct);
+
+                            // Обновляем прибыль
+                            const today = new Date().toISOString().split('T')[0];
+                            let found = false;
+                            for (let day of dailyProfit) {
+                                if (day.date === today) {
+                                    day.amount = (day.amount || 0) + product.price;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                dailyProfit.push({
+                                    date: today,
+                                    amount: product.price
+                                });
+                            }
+
+                            // Сохраняем изменения
+                            localStorage.setItem('supplies', JSON.stringify(supplies));
+                            localStorage.setItem('soldProducts', JSON.stringify(soldProducts));
+                            localStorage.setItem('dailyProfit', JSON.stringify(dailyProfit));
+
+                            // Синхронизируем с облаком
+                            await syncToCloud();
+
+                            // Обновляем интерфейс
+                            refreshAllSections();
+                            showNotification('Товар продан');
+
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Удаление товара
+        async function deleteProduct(productId, supplyId) {
+            const supplies = JSON.parse(localStorage.getItem('supplies'));
+
+            for (let supply of supplies) {
+                if (supply.id === supplyId) {
+                    supply.products = supply.products.filter(p => p.id != productId);
+                    break;
+                }
+            }
+
+            localStorage.setItem('supplies', JSON.stringify(supplies));
+
+            // Синхронизируем с облаком
+            await syncToCloud();
+
+            refreshAllSections();
+            showNotification('Товар удален');
+        }
+
+        // Удаление поставки
+        async function deleteSupply(supplyId) {
+            const supplies = JSON.parse(localStorage.getItem('supplies'));
+            const filtered = supplies.filter(s => s.id !== supplyId);
+            localStorage.setItem('supplies', JSON.stringify(filtered));
+
+            // Синхронизируем с облаком
+            await syncToCloud();
+
+            refreshAllSections();
+            showNotification('Поставка удалена');
+        }
+
+        // Загрузка проданных товаров
+        function loadSoldProducts() {
+            const soldProducts = JSON.parse(localStorage.getItem('soldProducts') || '[]');
+            const soldList = document.getElementById('soldList');
+            const emptySold = document.getElementById('emptySold');
+
+            soldList.innerHTML = '';
+
+            if (soldProducts.length === 0) {
+                if (emptySold) emptySold.style.display = 'block';
+                return;
+            }
+
+            if (emptySold) emptySold.style.display = 'none';
+
+            // Группируем по датам
+            const grouped = {};
+            soldProducts.forEach(product => {
+                const date = new Date(product.soldDate).toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                if (!grouped[date]) grouped[date] = [];
+                grouped[date].push(product);
+            });
+
+            // Отображаем по датам
+            const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+            dates.forEach(date => {
+                const dateSection = document.createElement('div');
+                dateSection.innerHTML = `
+                    <div class="sold-date">
+                        <i class="fas fa-calendar-day"></i> ${date}
+                    </div>
+                `;
+
+                grouped[date].forEach(product => {
+                    const soldItem = document.createElement('div');
+                    soldItem.className = 'sold-item';
+                    soldItem.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px; color: #333;">${product.name}</div>
+                                <div style="font-size: 14px; color: #666;">
+                                    ${product.price} ₽ × ${product.soldQuantity} шт
+                                </div>
+                            </div>
+                            <div style="font-weight: 700; color: #4CAF50; font-size: 18px;">
+                                ${product.totalPrice} ₽
+                            </div>
+                        </div>
+                    `;
+                    dateSection.appendChild(soldItem);
+                });
+
+                soldList.appendChild(dateSection);
+            });
+        }
+
+        // Обновление раздела Счёт
+        function updateAccountSection() {
+            const dailyProfit = JSON.parse(localStorage.getItem('dailyProfit') || '[]');
+            const profitList = document.getElementById('profitList');
+            const totalProfitAmount = document.getElementById('totalProfitAmount');
+            const soldToday = document.getElementById('soldToday');
+
+            let totalProfit = 0;
+            let todayProfit = 0;
+            const today = new Date().toISOString().split('T')[0];
+
+            profitList.innerHTML = '';
+
+            if (dailyProfit.length === 0) {
+                profitList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Нет данных о прибыли</p>
+                    </div>
+                `;
+            } else {
+                // Сортируем по дате (новые сверху)
+                dailyProfit.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(day => {
+                    totalProfit += day.amount || 0;
+
+                    if (day.date === today) {
+                        todayProfit = day.amount || 0;
+                    }
+
+                    const profitItem = document.createElement('div');
+                    profitItem.className = 'profit-item';
+                    profitItem.innerHTML = `
+                        <div class="profit-date">
+                            <i class="fas fa-calendar"></i> ${new Date(day.date).toLocaleDateString('ru-RU', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                            })}
+                        </div>
+                        <div class="profit-amount">${day.amount || 0} ₽</div>
+                    `;
+                    profitList.appendChild(profitItem);
+                });
+            }
+
+            totalProfitAmount.textContent = totalProfit + ' ₽';
+            soldToday.textContent = todayProfit + ' ₽';
+
+            // Настройка фильтра по дате
+            const dateFilter = document.getElementById('dateFilter');
+            dateFilter.value = today;
+            dateFilter.onchange = function() {
+                const filtered = dailyProfit.filter(day => day.date === this.value);
+                profitList.innerHTML = '';
+
+                if (filtered.length > 0) {
+                    filtered.forEach(day => {
+                        const profitItem = document.createElement('div');
+                        profitItem.className = 'profit-item';
+                        profitItem.innerHTML = `
+                            <div class="profit-date">
+                                <i class="fas fa-calendar"></i> ${new Date(day.date).toLocaleDateString('ru-RU', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                })}
+                            </div>
+                            <div class="profit-amount">${day.amount || 0} ₽</div>
+                        `;
+                        profitList.appendChild(profitItem);
+                    });
+                } else {
+                    profitList.innerHTML = `
+                        <div class="empty-state" style="padding: 40px 20px;">
+                            <i class="fas fa-search"></i>
+                            <p>Нет данных за выбранную дату</p>
+                        </div>
+                    `;
+                }
+            };
+        }
+
+        // =============================
+        // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+        // =============================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Устанавливаем сегодняшнюю дату в фильтр
+            const today = new Date().toISOString().split('T')[0];
+            const dateFilter = document.getElementById('dateFilter');
+            if (dateFilter) {
+                dateFilter.value = today;
+            }
+
+            // Инициализируем Telegram Web App
+            setTimeout(() => {
+                const telegramInitialized = initTelegram();
+
+                if (!telegramInitialized) {
+                    console.log('Telegram Web App не обнаружен');
+                }
+            }, 100);
+        });
+
+        // Обработка закрытия приложения
+        window.addEventListener('beforeunload', async () => {
+            if (syncInterval) {
+                clearInterval(syncInterval);
+            }
+
+            // Сохраняем данные перед закрытием
+            await syncToCloud();
+        });
+    </script>
+</body>
+</html>
