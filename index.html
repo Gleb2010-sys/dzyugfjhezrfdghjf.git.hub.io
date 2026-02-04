@@ -499,6 +499,36 @@
             100% { opacity: 1; }
         }
 
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                top: 50px;
+                opacity: 0;
+            }
+            to {
+                top: 70px;
+                opacity: 1;
+            }
+        }
+
         /* Адаптивность */
         @media (max-width: 768px) {
             body {
@@ -527,36 +557,6 @@
                 position: static;
                 margin-top: 10px;
                 justify-content: center;
-            }
-        }
-
-        /* Стили для уведомлений */
-        .notification {
-            position: fixed;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                top: 50px;
-                opacity: 0;
-            }
-            to {
-                top: 70px;
-                opacity: 1;
             }
         }
     </style>
@@ -588,7 +588,7 @@
     <!-- Основной экран -->
     <div id="mainScreen" class="main-screen">
         <!-- Статус синхронизации -->
-        <div class="online-status" id="onlineStatus">
+        <div class="online-status" id="onlineStatus" style="display: none;">
             <div class="online-dot" id="onlineDot"></div>
             <span id="onlineText">Синхронизация...</span>
         </div>
@@ -715,32 +715,13 @@
 
     <script>
         // =============================
-        // КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ
-        // =============================
-        const DB_CONFIG = {
-            // Замените на свой Appwrite проект
-            endpoint: 'https://cloud.appwrite.io/v1',
-            projectId: 'your-project-id',
-            databaseId: 'your-database-id',
-            collections: {
-                supplies: 'supplies',
-                sold: 'sold_products',
-                profit: 'daily_profit'
-            },
-            apiKey: 'your-api-key'
-        };
-
-        // =============================
         // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
         // =============================
         let TelegramWebApp = null;
         let telegramUser = null;
         let currentSection = 'supply';
-        let isOnline = false;
-        let lastSync = Date.now();
-        let syncInterval;
         let currentUserId = null;
-
+        
         // =============================
         // ДОМ ЭЛЕМЕНТЫ
         // =============================
@@ -749,185 +730,31 @@
         const addSupplyBtn = document.getElementById('addSupplyBtn');
         const supplyModal = document.getElementById('supplyModal');
         const productsContainer = document.getElementById('productsContainer');
-        const onlineStatus = document.getElementById('onlineStatus');
-        const onlineDot = document.getElementById('onlineDot');
-        const onlineText = document.getElementById('onlineText');
         const userAvatar = document.getElementById('userAvatar');
         const userName = document.getElementById('userName');
         const notification = document.getElementById('notification');
         const notificationText = document.getElementById('notificationText');
 
         // =============================
-        // ИНИЦИАЛИЗАЦИЯ TELEGRAM
+        // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
         // =============================
-        function initTelegram() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                TelegramWebApp = window.Telegram.WebApp;
-
-                try {
-                    TelegramWebApp.ready();
-                    TelegramWebApp.expand();
-
-                    telegramUser = TelegramWebApp.initDataUnsafe?.user;
-
-                    if (telegramUser) {
-                        // Устанавливаем уникальный ID пользователя
-                        currentUserId = telegramUser.id.toString();
-
-                        // Настраиваем интерфейс пользователя
-                        setupUserInterface();
-
-                        // Инициализируем приложение
-                        initializeApp();
-
-                        return true;
-                    } else {
-                        showError('Пользователь не найден');
-                        return false;
-                    }
-                } catch (error) {
-                    console.error('Ошибка инициализации Telegram:', error);
-                    showError('Ошибка подключения к Telegram');
-                    return false;
-                }
-            } else {
-                showError('Откройте приложение через Telegram бота');
-                return false;
-            }
-        }
-
-        function setupUserInterface() {
-            userName.textContent = telegramUser.first_name || 'Пользователь';
-            userAvatar.textContent = telegramUser.first_name?.[0]?.toUpperCase() || 'U';
-
-            // Настраиваем цветовую тему Telegram
-            if (TelegramWebApp.colorScheme === 'dark') {
-                document.body.style.backgroundColor = '#1a1a1a';
-                document.body.style.color = '#ffffff';
-            }
-        }
-
-        function initializeApp() {
-            // Скрываем экран входа
-            loginScreen.style.display = 'none';
-            mainScreen.style.display = 'block';
-
-            // Загружаем данные
-            loadUserData();
-
-            // Начинаем синхронизацию
-            startSync();
-
-            // Показываем уведомление
-            showNotification('Приложение загружено');
-        }
-
-        // =============================
-        // СИНХРОНИЗАЦИЯ ДАННЫХ
-        // =============================
-        async function loadUserData() {
-            try {
-                // Пробуем загрузить из облака
-                await syncFromCloud();
-            } catch (error) {
-                console.log('Ошибка облачной загрузки:', error);
-                // Пробуем загрузить из localStorage
-                await loadFromLocalStorage();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Устанавливаем сегодняшнюю дату в фильтр
+            const today = new Date().toISOString().split('T')[0];
+            const dateFilter = document.getElementById('dateFilter');
+            if (dateFilter) {
+                dateFilter.value = today;
             }
 
-            // Обновляем интерфейс
-            refreshAllSections();
-        }
+            // Инициализируем хранилище
+            initStorage();
+            
+            // Проверяем Telegram Web App
+            initTelegram();
+        });
 
-        async function syncToCloud() {
-            if (!currentUserId) return;
-
-            try {
-                const userData = {
-                    userId: currentUserId,
-                    supplies: JSON.parse(localStorage.getItem('supplies') || '[]'),
-                    soldProducts: JSON.parse(localStorage.getItem('soldProducts') || '[]'),
-                    dailyProfit: JSON.parse(localStorage.getItem('dailyProfit') || '[]'),
-                    timestamp: Date.now(),
-                    userInfo: {
-                        id: telegramUser.id,
-                        firstName: telegramUser.first_name,
-                        lastName: telegramUser.last_name,
-                        username: telegramUser.username
-                    }
-                };
-
-                // Здесь будет вызов к вашему серверу/базе данных
-                // Пример для Appwrite:
-                /*
-                const response = await fetch(`${DB_CONFIG.endpoint}/databases/${DB_CONFIG.databaseId}/collections/supplies/documents`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Appwrite-Project': DB_CONFIG.projectId,
-                        'X-Appwrite-Key': DB_CONFIG.apiKey
-                    },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        data: userData
-                    })
-                });
-                */
-
-                // Для демо сохраняем в localStorage с ключом по userId
-                localStorage.setItem(`cashapp_${currentUserId}`, JSON.stringify(userData));
-
-                // Также сохраняем время последней синхронизации
-                localStorage.setItem(`last_sync_${currentUserId}`, Date.now().toString());
-
-                return true;
-            } catch (error) {
-                console.error('Ошибка синхронизации:', error);
-                return false;
-            }
-        }
-
-        async function syncFromCloud() {
-            if (!currentUserId) return;
-
-            try {
-                // Здесь будет загрузка с вашего сервера/базы данных
-                // Пример для Appwrite:
-                /*
-                const response = await fetch(`${DB_CONFIG.endpoint}/databases/${DB_CONFIG.databaseId}/collections/supplies/documents?queries[]=equal("userId","${currentUserId}")`, {
-                    headers: {
-                        'X-Appwrite-Project': DB_CONFIG.projectId,
-                        'X-Appwrite-Key': DB_CONFIG.apiKey
-                    }
-                });
-
-                const data = await response.json();
-                const latestData = data.documents[0]?.data;
-                */
-
-                // Для демо загружаем из localStorage
-                const savedData = localStorage.getItem(`cashapp_${currentUserId}`);
-
-                if (savedData) {
-                    const userData = JSON.parse(savedData);
-
-                    // Загружаем данные в localStorage
-                    localStorage.setItem('supplies', JSON.stringify(userData.supplies || []));
-                    localStorage.setItem('soldProducts', JSON.stringify(userData.soldProducts || []));
-                    localStorage.setItem('dailyProfit', JSON.stringify(userData.dailyProfit || []));
-
-                    return true;
-                }
-
-                return false;
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                throw error;
-            }
-        }
-
-        function loadFromLocalStorage() {
-            // Инициализируем пустые данные, если их нет
+        // Инициализация хранилища
+        function initStorage() {
             if (!localStorage.getItem('supplies')) {
                 localStorage.setItem('supplies', JSON.stringify([]));
             }
@@ -937,60 +764,96 @@
             if (!localStorage.getItem('dailyProfit')) {
                 localStorage.setItem('dailyProfit', JSON.stringify([]));
             }
-
-            return true;
         }
 
-        function startSync() {
-            isOnline = true;
-            updateOnlineStatus();
-
-            // Синхронизация каждые 10 секунд
-            syncInterval = setInterval(async () => {
-                if (isOnline) {
-                    await performSync();
+        // Инициализация Telegram
+        function initTelegram() {
+            // Проверяем, открыто ли в Telegram Web App
+            if (window.Telegram && window.Telegram.WebApp) {
+                try {
+                    TelegramWebApp = window.Telegram.WebApp;
+                    TelegramWebApp.ready();
+                    TelegramWebApp.expand();
+                    
+                    telegramUser = TelegramWebApp.initDataUnsafe.user;
+                    
+                    if (telegramUser) {
+                        // Устанавливаем ID пользователя
+                        currentUserId = telegramUser.id.toString();
+                        
+                        // Настраиваем интерфейс пользователя
+                        setupUserInterface();
+                        
+                        // Загружаем данные пользователя
+                        loadUserData();
+                        
+                        // Показываем основной экран
+                        loginScreen.style.display = 'none';
+                        mainScreen.style.display = 'block';
+                        
+                        // Показываем уведомление
+                        showNotification('Добро пожаловать в Мою Кассу!');
+                        
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Ошибка инициализации Telegram:', error);
                 }
-            }, 10000);
-
-            // Проверка статуса каждые 30 секунд
-            setInterval(() => {
-                const timeDiff = Date.now() - lastSync;
-                if (timeDiff > 120000) { // 2 минуты без синхронизации
-                    isOnline = false;
-                    updateOnlineStatus();
-                }
-            }, 30000);
+            }
+            
+            // Если не в Telegram, показываем сообщение
+            showTelegramMessage();
+            return false;
         }
 
-        async function performSync() {
-            try {
-                // Сохраняем локальные изменения в облако
-                const syncResult = await syncToCloud();
-
-                if (syncResult) {
-                    lastSync = Date.now();
-                    updateOnlineStatus('Синхронизировано ' + new Date().toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }));
+        function setupUserInterface() {
+            if (telegramUser) {
+                userName.textContent = telegramUser.first_name || 'Пользователь';
+                if (telegramUser.first_name) {
+                    userAvatar.textContent = telegramUser.first_name[0].toUpperCase();
                 }
-            } catch (error) {
-                console.error('Ошибка синхронизации:', error);
-                isOnline = false;
-                updateOnlineStatus('Ошибка синхронизации');
             }
         }
 
-        function updateOnlineStatus(status = null) {
-            if (status) {
-                onlineText.textContent = status;
-            }
+        function showTelegramMessage() {
+            loginScreen.innerHTML = `
+                <h2><i class="fas fa-cash-register"></i> Моя Касса</h2>
+                <p style="color: #ff6b6b; font-weight: 600;">
+                    <i class="fas fa-exclamation-triangle"></i> Приложение работает только в Telegram
+                </p>
+                <p>Откройте это приложение через Telegram бота:</p>
+                <ol style="text-align: left; margin: 20px 0; color: #666; font-size: 14px;">
+                    <li>Найдите своего бота в Telegram</li>
+                    <li>Нажмите кнопку "Запустить приложение"</li>
+                    <li>Или отправьте команду /start</li>
+                </ol>
+                <p style="color: #4CAF50; font-weight: 600;">
+                    <i class="fab fa-telegram"></i> Откройте в Telegram через бота
+                </p>
+            `;
+        }
 
-            if (isOnline) {
-                onlineDot.classList.remove('offline');
-            } else {
-                onlineDot.classList.add('offline');
-                onlineText.textContent = 'Оффлайн';
+        // =============================
+        // СИНХРОНИЗАЦИЯ ДАННЫХ
+        // =============================
+        function loadUserData() {
+            // Загружаем данные из localStorage
+            loadFromLocalStorage();
+            
+            // Обновляем интерфейс
+            refreshAllSections();
+        }
+
+        function loadFromLocalStorage() {
+            // Инициализируем данные, если их нет
+            if (!localStorage.getItem('supplies')) {
+                localStorage.setItem('supplies', JSON.stringify([]));
+            }
+            if (!localStorage.getItem('soldProducts')) {
+                localStorage.setItem('soldProducts', JSON.stringify([]));
+            }
+            if (!localStorage.getItem('dailyProfit')) {
+                localStorage.setItem('dailyProfit', JSON.stringify([]));
             }
         }
 
@@ -1000,20 +863,10 @@
         function showNotification(text) {
             notificationText.textContent = text;
             notification.style.display = 'flex';
-
-            setTimeout(() => {
+            
+            setTimeout(function() {
                 notification.style.display = 'none';
             }, 3000);
-        }
-
-        function showError(message) {
-            loginScreen.innerHTML = `
-                <h2><i class="fas fa-exclamation-triangle"></i> Ошибка</h2>
-                <p style="color: #ff6b6b;">${message}</p>
-                <p style="margin-top: 20px; font-size: 14px; color: #666;">
-                    Откройте это приложение через Telegram бота
-                </p>
-            `;
         }
 
         // =============================
@@ -1024,13 +877,13 @@
             currentSection = section;
 
             // Обновляем активные кнопки
-            document.querySelectorAll('.nav-btn').forEach(btn => {
+            document.querySelectorAll('.nav-btn').forEach(function(btn) {
                 btn.classList.remove('active');
             });
             event.currentTarget.classList.add('active');
 
             // Показываем выбранный раздел
-            document.querySelectorAll('.section').forEach(sec => {
+            document.querySelectorAll('.section').forEach(function(sec) {
                 sec.classList.remove('active');
             });
             document.getElementById(section + 'Section').classList.add('active');
@@ -1066,7 +919,7 @@
         }
 
         // Открытие/закрытие модального окна
-        addSupplyBtn.addEventListener('click', () => {
+        addSupplyBtn.addEventListener('click', function() {
             supplyModal.style.display = 'flex';
             productsContainer.innerHTML = `
                 <div class="product-form">
@@ -1090,18 +943,18 @@
             supplyModal.style.display = 'none';
         }
 
-        window.addEventListener('click', (e) => {
+        window.addEventListener('click', function(e) {
             if (e.target === supplyModal) {
                 cancelSupply();
             }
         });
 
         // Сохранение поставки
-        async function saveSupply() {
+        function saveSupply() {
             const forms = productsContainer.querySelectorAll('.product-form');
             const products = [];
 
-            forms.forEach(form => {
+            forms.forEach(function(form) {
                 const name = form.querySelector('.product-name').value;
                 const price = form.querySelector('.product-price').value;
                 const quantity = form.querySelector('.product-quantity').value;
@@ -1127,13 +980,12 @@
                 });
                 localStorage.setItem('supplies', JSON.stringify(supplies));
 
-                // Синхронизируем с облаком
-                await syncToCloud();
-
                 supplyModal.style.display = 'none';
                 loadSupplies();
-
+                
                 showNotification('Поставка добавлена');
+            } else {
+                showNotification('Заполните все поля');
             }
         }
 
@@ -1153,7 +1005,9 @@
             if (emptySupply) emptySupply.style.display = 'none';
 
             // Сортируем поставки по дате (новые сверху)
-            supplies.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(supply => {
+            supplies.sort(function(a, b) {
+                return new Date(b.date) - new Date(a.date);
+            }).forEach(function(supply) {
                 const supplyCard = document.createElement('div');
                 supplyCard.className = 'supply-card';
 
@@ -1164,7 +1018,7 @@
                 });
 
                 let productsHTML = '';
-                supply.products.forEach(product => {
+                supply.products.forEach(function(product) {
                     if (product.remaining > 0) {
                         productsHTML += `
                             <div class="product-card">
@@ -1222,7 +1076,7 @@
         }
 
         // Продажа товара
-        async function sellProduct(productId, supplyId) {
+        function sellProduct(productId, supplyId) {
             const supplies = JSON.parse(localStorage.getItem('supplies'));
             const soldProducts = JSON.parse(localStorage.getItem('soldProducts'));
             const dailyProfit = JSON.parse(localStorage.getItem('dailyProfit'));
@@ -1266,13 +1120,10 @@
                             localStorage.setItem('soldProducts', JSON.stringify(soldProducts));
                             localStorage.setItem('dailyProfit', JSON.stringify(dailyProfit));
 
-                            // Синхронизируем с облаком
-                            await syncToCloud();
-
                             // Обновляем интерфейс
                             refreshAllSections();
-                            showNotification('Товар продан');
-
+                            showNotification('Товар продан за ' + product.price + ' ₽');
+                            
                             break;
                         }
                     }
@@ -1281,34 +1132,32 @@
         }
 
         // Удаление товара
-        async function deleteProduct(productId, supplyId) {
+        function deleteProduct(productId, supplyId) {
             const supplies = JSON.parse(localStorage.getItem('supplies'));
 
             for (let supply of supplies) {
                 if (supply.id === supplyId) {
-                    supply.products = supply.products.filter(p => p.id != productId);
+                    supply.products = supply.products.filter(function(p) {
+                        return p.id != productId;
+                    });
                     break;
                 }
             }
 
             localStorage.setItem('supplies', JSON.stringify(supplies));
-
-            // Синхронизируем с облаком
-            await syncToCloud();
-
+            
             refreshAllSections();
             showNotification('Товар удален');
         }
 
         // Удаление поставки
-        async function deleteSupply(supplyId) {
+        function deleteSupply(supplyId) {
             const supplies = JSON.parse(localStorage.getItem('supplies'));
-            const filtered = supplies.filter(s => s.id !== supplyId);
+            const filtered = supplies.filter(function(s) {
+                return s.id !== supplyId;
+            });
             localStorage.setItem('supplies', JSON.stringify(filtered));
-
-            // Синхронизируем с облаком
-            await syncToCloud();
-
+            
             refreshAllSections();
             showNotification('Поставка удалена');
         }
@@ -1330,7 +1179,7 @@
 
             // Группируем по датам
             const grouped = {};
-            soldProducts.forEach(product => {
+            soldProducts.forEach(function(product) {
                 const date = new Date(product.soldDate).toLocaleDateString('ru-RU', {
                     day: 'numeric',
                     month: 'long',
@@ -1341,9 +1190,11 @@
             });
 
             // Отображаем по датам
-            const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+            const dates = Object.keys(grouped).sort(function(a, b) {
+                return new Date(b) - new Date(a);
+            });
 
-            dates.forEach(date => {
+            dates.forEach(function(date) {
                 const dateSection = document.createElement('div');
                 dateSection.innerHTML = `
                     <div class="sold-date">
@@ -1351,7 +1202,7 @@
                     </div>
                 `;
 
-                grouped[date].forEach(product => {
+                grouped[date].forEach(function(product) {
                     const soldItem = document.createElement('div');
                     soldItem.className = 'sold-item';
                     soldItem.innerHTML = `
@@ -1396,7 +1247,9 @@
                 `;
             } else {
                 // Сортируем по дате (новые сверху)
-                dailyProfit.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(day => {
+                dailyProfit.sort(function(a, b) {
+                    return new Date(b.date) - new Date(a.date);
+                }).forEach(function(day) {
                     totalProfit += day.amount || 0;
 
                     if (day.date === today) {
@@ -1426,11 +1279,13 @@
             const dateFilter = document.getElementById('dateFilter');
             dateFilter.value = today;
             dateFilter.onchange = function() {
-                const filtered = dailyProfit.filter(day => day.date === this.value);
+                const filtered = dailyProfit.filter(function(day) {
+                    return day.date === this.value;
+                }.bind(this));
                 profitList.innerHTML = '';
 
                 if (filtered.length > 0) {
-                    filtered.forEach(day => {
+                    filtered.forEach(function(day) {
                         const profitItem = document.createElement('div');
                         profitItem.className = 'profit-item';
                         profitItem.innerHTML = `
@@ -1455,37 +1310,6 @@
                 }
             };
         }
-
-        // =============================
-        // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
-        // =============================
-        document.addEventListener('DOMContentLoaded', () => {
-            // Устанавливаем сегодняшнюю дату в фильтр
-            const today = new Date().toISOString().split('T')[0];
-            const dateFilter = document.getElementById('dateFilter');
-            if (dateFilter) {
-                dateFilter.value = today;
-            }
-
-            // Инициализируем Telegram Web App
-            setTimeout(() => {
-                const telegramInitialized = initTelegram();
-
-                if (!telegramInitialized) {
-                    console.log('Telegram Web App не обнаружен');
-                }
-            }, 100);
-        });
-
-        // Обработка закрытия приложения
-        window.addEventListener('beforeunload', async () => {
-            if (syncInterval) {
-                clearInterval(syncInterval);
-            }
-
-            // Сохраняем данные перед закрытием
-            await syncToCloud();
-        });
     </script>
 </body>
 </html>
